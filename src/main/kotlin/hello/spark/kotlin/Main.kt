@@ -1,17 +1,13 @@
 package hello.spark.kotlin
 
 import org.apache.spark.SparkConf
-import org.apache.spark.api.java.function.MapFunction
-import org.apache.spark.sql.Encoder
-import org.apache.spark.sql.Encoders
-import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
-import scala.Tuple2
-import java.sql.Timestamp
 
 internal val sparkConf = SparkConf()
     .setAppName("Hello Spark with Kotlin")
-    .set("spark.kryo.registrator", "hello.spark.kotlin.MyRegistrator")
+    .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    .set("spark.kryo.registrationRequired", "true")
+    .registerKryoClasses(arrayOf(StringSet::class.java))
 
 fun main() {
     DBIntermediary.init()
@@ -32,31 +28,16 @@ fun main() {
         .option("password", DBIntermediary.pass)
         .load()
 
-    inputDataset.show()
-
-    val transactionEncoder = Encoders.bean(Transaction::class.java)
+    val aggregator = ItemAggregator().toColumn().alias("items")
     val transactions = inputDataset
-        .groupByKey(KeyExtractor(), KeyExtractor.getKeyEncoder())
-        .mapGroups(TransactionCreator(), transactionEncoder)
+        .mapPartitions(ItemEnlister(), Transaction.getEncoder())
+        .also { it.printSchema() }
+        .groupBy("context", "epoch")
+        .agg(aggregator)
+        .also { it.printSchema() }
         .collectAsList()
 
-    transactions.forEach { println("collected Transaction=$it") }
+    transactions.forEach { println("collected transaction=${it.mkString(",")}") }
 
     spark.stop()
-}
-
-class KeyExtractor : MapFunction<Row, Tuple2<String, Timestamp>> {
-    companion object {
-        @JvmStatic
-        private val serialVersionUID = 1L
-
-        @JvmStatic
-        fun getKeyEncoder(): Encoder<Tuple2<String, Timestamp>> {
-            return Encoders.tuple(Encoders.STRING(), Encoders.TIMESTAMP())
-        }
-    }
-
-    override fun call(value: Row): Tuple2<String, Timestamp> {
-        return Tuple2(value.getString(0), value.getTimestamp(1))
-    }
 }
