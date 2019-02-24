@@ -4,6 +4,7 @@ import java.sql.DriverManager
 import java.sql.Timestamp
 
 object DBIntermediary {
+    const val driver = "org.hsqldb.jdbc.JDBCDriver"
     const val url = "jdbc:hsqldb:mem:sarda"
     const val user = "SA"
     const val pass = ""

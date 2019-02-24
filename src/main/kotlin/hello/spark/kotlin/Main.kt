@@ -24,6 +24,7 @@ fun main() {
 
     val inputDataset = spark.read()
         .format("jdbc")
+        .option("driver", DBIntermediary.driver)
         .option("url", DBIntermediary.url)
         .option("dbtable", "${DBIntermediary.schema}.${DBIntermediary.table}")
         .option("user", DBIntermediary.user)

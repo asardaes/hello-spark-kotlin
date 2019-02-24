@@ -64,8 +64,7 @@ class ItemAggregator : Aggregator<Row, StringSet, StringSet>() {
     override fun zero() = StringSet()
 
     override fun reduce(buffer: StringSet, row: Row): StringSet {
-        @Suppress("UNCHECKED_CAST")
-        val items = row.get(2) as WrappedArray<String>
+        val items = row.getAs<WrappedArray<String>>(2)
         for (item in items) buffer.add(item)
         return buffer
     }
