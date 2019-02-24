@@ -1,7 +1,5 @@
 package hello.spark.kotlin
 
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.io.Input
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
@@ -9,7 +7,7 @@ internal val sparkConf = SparkConf()
     .setAppName("Hello Spark with Kotlin")
     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     .set("spark.kryo.registrationRequired", "true")
-    .registerKryoClasses(arrayOf(StringSet::class.java))
+    .registerKryoClasses(arrayOf(StringSet::class.java, ByteArray::class.java))
 
 fun main() {
     DBIntermediary.init()
@@ -42,9 +40,7 @@ fun main() {
     transactions.forEach {
         print("collected transaction=${it.mkString(",")} -> ")
         val b = it.getAs<ByteArray>(2)
-        val input = Input(b.copyOfRange(1, b.size)) // extra byte?
-        val set = Kryo().readObject(input, StringSet::class.java)
-        input.close()
+        val set = StringSet.deserialize(b)
         println(set)
     }
 

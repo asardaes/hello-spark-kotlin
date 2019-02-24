@@ -38,24 +38,33 @@ class StringSet(other: Collection<String>) : HashSet<String>(other), KryoSeriali
     companion object {
         @JvmStatic
         private val serialVersionUID = 1L
+
+        fun serialize(instance: StringSet): ByteArray = Output(128, -1).use { output ->
+            instance.write(null, output)
+            output.toBytes()
+        }
+
+        fun deserialize(buffer: ByteArray) = Input(buffer).use { input ->
+            StringSet().apply { read(null, input) }
+        }
     }
 
     constructor() : this(Collections.emptyList())
 
-    override fun write(kryo: Kryo, output: Output) {
+    override fun write(kryo: Kryo?, output: Output) {
         output.writeInt(this.size)
         for (string in this) {
             output.writeString(string)
         }
     }
 
-    override fun read(kryo: Kryo, input: Input) {
+    override fun read(kryo: Kryo?, input: Input) {
         val size = input.readInt()
         repeat(size) { this.add(input.readString()) }
     }
 }
 
-class ItemAggregator : Aggregator<Row, StringSet, StringSet>() {
+class ItemAggregator : Aggregator<Row, StringSet, ByteArray>() {
     companion object {
         @JvmStatic
         private val serialVersionUID = 1L
@@ -74,9 +83,11 @@ class ItemAggregator : Aggregator<Row, StringSet, StringSet>() {
         return StringSet(b1).apply { addAll(b2) }
     }
 
-    override fun finish(items: StringSet) = items.also { println("aggregation=$it") }
+    override fun finish(items: StringSet) = StringSet
+        .also { println("aggregation=$it") }
+        .serialize(items)
 
     override fun bufferEncoder(): Encoder<StringSet> = Encoders.kryo(StringSet::class.java)
 
-    override fun outputEncoder(): Encoder<StringSet> = Encoders.kryo(StringSet::class.java)
+    override fun outputEncoder(): Encoder<ByteArray> = Encoders.kryo(ByteArray::class.java)
 }
