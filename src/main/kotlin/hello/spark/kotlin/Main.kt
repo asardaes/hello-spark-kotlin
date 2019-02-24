@@ -44,6 +44,7 @@ fun main() {
         val b = it.getAs<ByteArray>(2)
         val input = Input(b.copyOfRange(1, b.size)) // extra byte?
         val set = Kryo().readObject(input, StringSet::class.java)
+        input.close()
         println(set)
     }
 
