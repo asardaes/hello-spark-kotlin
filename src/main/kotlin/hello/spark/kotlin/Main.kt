@@ -1,5 +1,7 @@
 package hello.spark.kotlin
 
+import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.io.Input
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
@@ -37,7 +39,13 @@ fun main() {
         .also { it.printSchema() }
         .collectAsList()
 
-    transactions.forEach { println("collected transaction=${it.mkString(",")}") }
+    transactions.forEach {
+        print("collected transaction=${it.mkString(",")} -> ")
+        val b = it.getAs<ByteArray>(2)
+        val input = Input(b.copyOfRange(1, b.size)) // extra byte?
+        val set = Kryo().readObject(input, StringSet::class.java)
+        println(set)
+    }
 
     spark.stop()
 }
